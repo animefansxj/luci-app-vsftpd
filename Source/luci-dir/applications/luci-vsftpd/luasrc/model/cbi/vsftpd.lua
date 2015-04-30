@@ -1,14 +1,15 @@
 --[[
 LuCI - Lua Configuration Interface - vsftpd support
 
-Script by Admin @ NVACG.com (af_xj@hotmail.com , xujun@smm.cn)
-The template Read & Write Function is based on luci-app-samba, TKS.
+Script by Admin @ NVACG.org (af_xj@hotmail.com , xujun@smm.cn)
+Some codes is based on luci-app-upnp, TKS.
+The Author of luci-app-upnp is Steven Barth <steven@midlink.org> and Jo-Philipp Wich <xm@subsignal.org>
 
-Licensed under the Apache License, Version 2.0 (the "License");
+Licensed under the GPL License, Version 3.0 (the "license");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+you may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+	http://www.gnu.org/licenses/gpl.txt
 
 $Id$
 ]]--
@@ -20,9 +21,11 @@ local running=(luci.sys.call("pidof vsftpd > /dev/null") == 0)
 
 m=Map("vsftpd",translate("FTP Service"),translate("Use this page, you can share your file under web via ftp."))
 
-s=m:section(TypedSection,"vsftpd","")
+s=m:section(TypedSection,"vsftpd",translate("vsFTPd Settings"))
 s.addremove=false
 s.anonymous=true
+
+m:section(SimpleSection).template="vsftpd_status"
 
 s:tab("general",translate("Global"))
 s:tab("localuser",translate("Local User"))
@@ -49,13 +52,28 @@ function enable.write(self,section,value)
 		luci.sys.call("/etc/init.d/vsftpd disable >/dev/null")
 	end
 end
+listen_ipv6=s:taboption("general",Flag,"listen_ipv6",translate("Allow IPv6"))
+listen_ipv6.rmempty=false
 banner=s:taboption("general",Value,"ftpd_banner",translate("FTP banner"))
 banner.rmempty=true
 banner.placeholder="OpenWRT Router Embd FTP service."
 max_clients=s:taboption("general",Value,"max_clients",translate("Max number of clients"))
+max_clients:value("5","5")
+max_clients:value("10","10")
+max_clients:value("15","15")
+max_clients:value("20","20")
 max_clients.placeholder="10"
 max_clients.datatype="range(1,100)"
-max_clients.rmempty=false
+max_clients.rmempty=true
+max_per_ip=s:taboption("general",Value,"max_per_ip",translate("Max threads of per ip"))
+max_per_ip:value("1","1")
+max_per_ip:value("2","2")
+max_per_ip:value("3","3")
+max_per_ip:value("4","4")
+max_per_ip:value("5","5")
+max_per_ip.placeholder="5"
+max_per_ip.datatype="range(1,10)"
+max_per_ip.rmempty=true
 ascii=s:taboption("general",ListValue,"ascii",translate("ASCII availabled"))
 ascii:value("both","Both Download and Upload")
 ascii:value("download","Download only")
@@ -63,6 +81,18 @@ ascii:value("upload","Upload only")
 ascii:value("none","None")
 port_20=s:taboption("general",Flag,"connect_from_port_20",translate("Data Port using 20"))
 port_20.rmempty=false
+pasv_enable=s:taboption("general",Flag,"pasv_enable",translate("Enable Pasv Mode"))
+pasv_enable.rmempty=false
+pasv_min_port=s:taboption("general",Value,"pasv_min_port",translate("Pasv Min Port"))
+pasv_min_port.rmempty=true
+pasv_min_port.placeholder="1024"
+pasv_min_port.datatype="range(1024,65535)"
+pasv_min_port:depends("pasv_enable",1)
+pasv_max_port=s:taboption("general",Value,"pasv_max_port",translate("Pasv Max Port"))
+pasv_max_port.rmempty=true
+pasv_max_port.placeholder="65535"
+pasv_max_port.datatype="range(1024,65535)"
+pasv_max_port:depends("pasv_enable",1)
 async_abor=s:taboption("general",Flag,"async_abor_enable",translate("Accept Special Cmd"))
 async_abor.rmempty=false
 ls_recurse=s:taboption("general",Flag,"ls_recurse_enable",translate("Allow exhaustive listing"))
@@ -75,6 +105,14 @@ idle_timeout.placeholder="600"
 transfer_timeout=s:taboption("general",Value,"data_connection_timeout",translate("Transfer timeout"))
 transfer_timeout.rmempty=false
 transfer_timeout.placeholder="200"
+xferlog=s:taboption("general",Flag,"xferlog_enable",translate("Enable FTP Logging"))
+xferlog.rmempty=false
+log_path=s:taboption("general",Value,"log_path",translate("Log Path"))
+log_path.rmempty=true
+log_path.placeholder="/tmp/log/vsftpd.log"
+log_path:depends("xferlog_enable",1)
+proctitle=s:taboption("general",Flag,"proctitle_enable",translate("Monitor FTP session"))
+proctitle.rmempty=false
 
 local_enabled=s:taboption("localuser",Flag,"local_enable",translate("Allow local member"))
 local_enabled.rmempty=false
@@ -87,6 +125,18 @@ local_chown:depends("local_enable",1)
 local_chroot=s:taboption("localuser",Flag,"chroot_local_user",translate("Enable chroot"))
 local_chroot.rmempty=false
 local_chroot:depends("local_enable",1)
+local_max_rate=s:taboption("localuser",Value,"local_max_rate",translate("Speed limit"),translate("In KB/s. 0 means unlimited."))
+local_max_rate:value("0","0")
+local_max_rate:value("64","64")
+local_max_rate:value("128","128")
+local_max_rate:value("256","256")
+local_max_rate:value("512","512")
+local_max_rate:value("1024","1024")
+local_max_rate:value("2048","2048")
+local_max_rate.placeholder="0"
+local_max_rate.datatype="range(0,128000)"
+local_max_rate.rmempty=true
+local_max_rate:depends("local_enable",1)
 local_umask=s:taboption("localuser",Value,"local_umask",translate("uMask for new uploads"),translate("The format for number likes ###, first bit for the file's Master. second bit for the Groups which Master have joined, last bit for other people. Every bit's value from 0 to 7: 4 means read, 2 means write, 1 means execute. The value of a bit is the sigma of above listed value. When a file created, the default value is 777\(that means everyone can read write and execute the file,\) and the vsftpd will deduct the value which you set from default value."))
 local_umask:value("000","000")
 local_umask:value("022","022")
@@ -106,6 +156,23 @@ anon_mkdir.rmempty=false
 anon_mkdir:depends("anonymous_enable",1)
 anon_root=s:taboption("anonymous",Value,"anon_root",translate("Anonymous root"))
 anon_root.rmempty=false
+anon_max_rate=s:taboption("anonymous",Value,"anon_max_rate",translate("Speed limit"),translate("In KB/s. 0 means unlimited."))
+anon_max_rate:value("0","0")
+anon_max_rate:value("64","64")
+anon_max_rate:value("128","128")
+anon_max_rate:value("256","256")
+anon_max_rate:value("512","512")
+anon_max_rate:value("1024","1024")
+anon_max_rate:value("2048","2048")
+anon_max_rate.placeholder="0"
+anon_max_rate.datatype="range(0,128000)"
+anon_max_rate.rmempty=true
+anon_max_rate:depends("anonymous_enable",1)
+chown_username=s:taboption("anonymous",ListValue,"chown_username",translate("Chown User"))
+chown_username:depends("anonymous_enable",1)
+for _, list_user in luci.util.vspairs(luci.util.split(luci.sys.exec("cat /etc/passwd | cut -f 1 -d:"))) do
+    chown_username:value(list_user)
+end
 
 local_userlist=s:taboption("userlist",Flag,"userlist_enable",translate("Enable userlist"))
 local_userlist.rmempty=false
@@ -113,7 +180,7 @@ local_userlist:depends("local_enable",1)
 local_userlist_type=s:taboption("userlist",ListValue,"userlist_type",translate("Userlist control type"))
 local_userlist_type:value("allow","allow")
 local_userlist_type:value("deny","deny")
-list=s:taboption("userlist",DynamicList,"userlist",translate("user"))
+list=s:taboption("userlist",DynamicList,"userlist",translate("User"))
 for _, list_user in luci.util.vspairs(luci.util.split(luci.sys.exec("cat /etc/passwd | cut -f 1 -d:"))) do
     list:value(list_user)
 end

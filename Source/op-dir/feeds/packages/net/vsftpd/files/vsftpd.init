@@ -17,6 +17,9 @@ start() {
   ########## Since Ver 2.0 ##########
   local dirmessage_enable connect_from_port_20 idle_session_timeout data_connection_timeout async_abor_enable
   local ascii ls_recurse_enable ascii_download ascii_upload
+  ########## Since Ver 4.0 ##########
+  local proctitle_enable xferlog_enable log_path chown_username listen_ipv6 pasv_enable pasv_min_port
+  local pasv_max_port max_per_ip local_max_rate anon_max_rate
   
   config_get enabled                 main enabled
   config_get ftpd_banner             main ftpd_banner
@@ -41,7 +44,18 @@ start() {
   config_get ls_recurse_enable       main ls_recurse_enable
   ########## Since Ver 3.0 ##########
   config_get anon_root               main anon_root
-  
+  ########## Since Ver 4.0 ##########
+  config_get proctitle_enable        main proctitle_enable
+  config_get xferlog_enable          main xferlog_enable
+  config_get log_path		     main log_path
+  config_get chown_username	     main chown_username  
+  config_get listen_ipv6	     main listen_ipv6
+  config_get pasv_enable	     main pasv_enable
+  config_get pasv_min_port	     main pasv_min_port
+  config_get pasv_max_port	     main pasv_max_port
+  config_get max_per_ip		     main max_per_ip
+  config_get local_max_rate	     main local_max_rate
+  config_get anon_max_rate	     main anon_max_rate
 
   local userlist_deny
   
@@ -147,7 +161,36 @@ start() {
         ;;
   esac
 
+  ########## Since Ver 4.0 ##########
+
+  if [ $proctitle_enable -eq 1 ]; then
+    proctitle_enable="YES"
+  else
+    proctitle_enable="NO"
+  fi
+
+  if [ $xferlog_enable -eq 1 ]; then
+    xferlog_enable="YES"
+  else
+    xferlog_enable="NO"
+  fi
+
+  if [ ! $log_path ]; then
+    log_path="/tmp/log/vsftpd.log"
+  fi
   
+  if [ $listen_ipv6 -eq 1 ]; then
+    listen_ipv6="YES"
+  else
+    listen_ipv6="NO"
+  fi
+
+  if [ $pasv_enable -eq 1 ]; then
+    pasv_enable="YES"
+  else
+    pasv_enable="NO"
+  fi
+
   mkdir -p /var/etc
   sed -e "s#|MAX_CLIENTS|#$max_clients#g" \
       -e "s#|ANONYMOUS_ENABLE|#$anonymous_enable#g" \
@@ -170,8 +213,37 @@ start() {
       -e "s#|ASCII_UPLOAD_ENABLE|#$ascii_upload#g" \
       -e "s#|IDLE_SESSION_TIMEOUT|#$idle_session_timeout#g" \
       -e "s#|DATA_CONNECTION_TIMEOUT|#$data_connection_timeout#g" \
+      -e "s#|XFERLOG_ENABLE|#$xferlog_enable#g" \
+      -e "s#|LOG_PATH|#$log_path#g" \
+      -e "s#|PROCTITLE_ENABLE|#$proctitle_enable#g" \
+      -e "s#|CHOWN_USERNAME|#$chown_username#g" \
+      -e "s#|LISTEN_IPV6|#$listen_ipv6#g" \
+      -e "s#|PASV_ENABLE|#$pasv_enable#g" \
+      -e "s#|MAX_PER_IP|#$max_per_ip#g" \
       /etc/vsftpd.conf.template > /var/etc/vsftpd.conf
 
+  ########## Since Ver 4.0 ##########
+  if [ $chown_username ]; then
+    echo "chown_username=$chown_username" >> /var/etc/vsftpd.conf
+  fi
+
+  if [ $pasv_min_port ]; then
+    echo "pasv_min_port=$pasv_min_port" >> /var/etc/vsftpd.conf
+  fi
+
+  if [ $pasv_max_port ]; then
+    echo "pasv_max_port=$pasv_max_port" >> /var/etc/vsftpd.conf
+  fi
+
+  if [ $local_max_rate -ne 0 ]; then
+    let local_max_rate*=1024
+    echo "local_max_rate=$local_max_rate" >> /var/etc/vsftpd.conf
+  fi
+
+  if [ $anon_max_rate -ne 0 ]; then
+    let anon_max_rate*=1024
+    echo "anon_max_rate=$anon_max_rate" >> /var/etc/vsftpd.conf
+  fi
 
       [ -f /etc/vsftpd.conf ] && [ ! -L /etc/vsftpd.conf ] && mv -f /etc/vsftpd.conf /etc/vsftpd.conf.bak
       ln -nsf /var/etc/vsftpd.conf /etc/vsftpd.conf

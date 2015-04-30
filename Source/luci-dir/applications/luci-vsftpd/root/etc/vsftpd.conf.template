@@ -1,6 +1,10 @@
 background=YES
 max_clients=|MAX_CLIENTS|
 listen=YES
+# Low version's vsftpd no support ipv6
+# listen_ipv6=|LISTEN_IPV6|
+pasv_enable=|PASV_ENABLE|
+max_per_ip=|MAX_PER_IP|
 
 connect_from_port_20=|CONNECT_FROM_PORT_20|
 async_abor_enable=|ASYNC_ABOR_ENABLE|
@@ -30,5 +34,6 @@ session_support=NO
 userlist_enable=|USERLIST_ENABLE|
 userlist_deny=|USERLIST_DENY|
 userlist_file=/var/etc/vsftpd/users.txt
-xferlog_enable=YES
-xferlog_file=/tmp/log/vsftpd.log
+xferlog_enable=|XFERLOG_ENABLE|
+xferlog_file=|LOG_PATH|
+setproctitle_enable=|PROCTITLE_ENABLE|

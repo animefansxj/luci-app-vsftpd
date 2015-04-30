@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=vsftpd
-PKG_VERSION:=3.0.2
+PKG_VERSION:=2.3.4
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://security.appspot.com/downloads/
-PKG_MD5SUM:=8b00c749719089401315bd3c44dddbb2
+PKG_MD5SUM:=2ea5d19978710527bb7444d93b67767a
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -42,9 +42,9 @@ define Package/vsftpd/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_DATA) ./files/$(PKG_NAME).conf $(1)/etc/config/$(PKG_NAME)
+	$(INSTALL_CONF) files/$(PKG_NAME).conf $(1)/etc/config/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./files/$(PKG_NAME).init $(1)/etc/init.d/$(PKG_NAME)
+	$(INSTALL_BIN) files/$(PKG_NAME).init $(1)/etc/init.d/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,vsftpd))
