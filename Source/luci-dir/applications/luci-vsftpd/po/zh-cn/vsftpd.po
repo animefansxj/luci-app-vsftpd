@@ -171,3 +171,54 @@ msgstr "由3位8进制数组成. 第一位针对文件的所有者, 第二位针
 
 msgid "Here,you can edit the template of config file"
 msgstr "此处，你可以编辑用以生成配置文件的模板"
+
+msgid "Both Download and Upload"
+msgstr "下载和上传"
+
+msgid "Download only"
+msgstr "仅下载"
+
+msgid "Upload only"
+msgstr "仅上传"
+
+msgid "Virtual User"
+msgstr "虚拟用户"
+
+msgid "Enable virtual user"
+msgstr "启用虚拟用户"
+
+msgid "Enable virtual user will disable local user"
+msgstr "启用虚拟用户将禁用本地用户"
+
+msgid "Map to local user"
+msgstr "映射到本地用户"
+
+msgid "Virtual User List"
+msgstr "虚拟用户列表"
+
+msgid "User Name"
+msgstr "用户名"
+
+msgid "Password"
+msgstr "密码"
+
+msgid "Root dir"
+msgstr "根目录"
+
+msgid "uMask"
+msgstr "掩码"
+
+msgid "Speed Limit"
+msgstr "限速"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Upload"
+msgstr "上传"
+
+msgid "Chown"
+msgstr "更改所有者"
+
+msgid "Unlimit"
+msgstr "不限"

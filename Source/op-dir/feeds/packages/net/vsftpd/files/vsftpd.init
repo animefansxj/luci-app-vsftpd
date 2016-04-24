@@ -7,6 +7,49 @@ mkuserlist() {
   echo $1 >> /var/etc/vsftpd/users.txt
 }
 
+mkvconfig() {
+  config_get	enable	$1	enable
+  config_get	user	$1	user
+  config_get	pass	$1	pass
+  config_get	root	$1	root
+  config_get	umask	$1	umask
+  config_get	speed	$1	speed
+  config_get	download	$1	download
+  config_get	upload	$1	upload
+  config_get	chown	$1	chown
+
+  if [ $enable ]; then
+	echo "$user" >> /var/etc/vsftpd/virtual
+	echo "$pass" >> /var/etc/vsftpd/virtual
+
+	if [ $download -eq 1 ]; then
+		echo "download_enable=YES" >> /var/etc/vsftpd/vconfig/$user
+	else
+		echo "download_enable=NO" >> /var/etc/vsftpd/vconfig/$user
+	fi
+
+	if [ $upload -eq 1 ]; then
+		echo "write_enable=YES" >> /var/etc/vsftpd/vconfig/$user
+	else
+		echo "write_enable=NO" >> /var/etc/vsftpd/vconfig/$user
+	fi
+
+	if [ $chown -eq 1 ]; then
+		echo "chown_uploads=YES" >> /var/etc/vsftpd/vconfig/$user
+	else
+		echo "chown_uploads=NO" >> /var/etc/vsftpd/vconfig/$user
+	fi
+	
+	echo "local_root=$root" >> /var/etc/vsftpd/vconfig/$user
+	echo "local_umask=$umask" >> /var/etc/vsftpd/vconfig/$user
+
+	if [ $speed -ne 0 ]; then
+		let speed*=1024
+		echo "local_max_rate=$speed" >> /var/etc/vsftpd/vconfig/$user
+	fi
+
+  fi
+}
 
 start() {
 
@@ -20,6 +63,8 @@ start() {
   ########## Since Ver 4.0 ##########
   local proctitle_enable xferlog_enable log_path chown_username listen_ipv6 pasv_enable pasv_min_port
   local pasv_max_port max_per_ip local_max_rate anon_max_rate
+  ########## Since Ver 5.0 ##########
+  local guest_enable guest_username
   
   config_get enabled                 main enabled
   config_get ftpd_banner             main ftpd_banner
@@ -56,6 +101,9 @@ start() {
   config_get max_per_ip		     main max_per_ip
   config_get local_max_rate	     main local_max_rate
   config_get anon_max_rate	     main anon_max_rate
+  ########## Since Ver 5.0 ##########
+  config_get guest_enable	     main guest_enable
+  config_get guest_username	     main guest_username
 
   local userlist_deny
   
@@ -111,6 +159,10 @@ start() {
     userlist_deny="NO"
   else
     userlist_deny="YES"
+  fi
+
+  if [ ! $local_umask ]; then
+    local_umask="022"
   fi
   
   ########## Since Ver 2.0 ##########
@@ -191,6 +243,18 @@ start() {
     pasv_enable="NO"
   fi
 
+  ########## Since Ver 5.0 ##########
+  if [ $guest_enable -eq 1 ]; then
+    local_enable="YES"
+    guest_enable="YES"
+  else
+    guest_enable="NO"
+  fi
+
+  if [ ! $guest_username ]; then
+    guest_username=ftp
+  fi
+
   mkdir -p /var/etc
   sed -e "s#|MAX_CLIENTS|#$max_clients#g" \
       -e "s#|ANONYMOUS_ENABLE|#$anonymous_enable#g" \
@@ -199,9 +263,9 @@ start() {
       -e "s#|ANON_ROOT|#$anon_root#g" \
       -e "s#|LOACL_ENABLE|#$local_enable#g" \
       -e "s#|WRITE_ENABLE|#$write_enable#g" \
-      -e "s#|LOCAL_UMASK|#$local_umask#g" \
       -e "s#|CHOWN_UPLOADS|#$chown_uploads#g" \
       -e "s#|CHROOT_LOCAL_USER|#$chroot_local_user#g" \
+      -e "s#|LOCAL_UMASK|#$local_umask#g" \
       -e "s#|FTPD_BANNER|#$ftpd_banner#g" \
       -e "s#|USERLIST_ENABLE|#$userlist_enable#g" \
       -e "s#|USERLIST_DENY|#$userlist_deny#g" \
@@ -220,6 +284,8 @@ start() {
       -e "s#|LISTEN_IPV6|#$listen_ipv6#g" \
       -e "s#|PASV_ENABLE|#$pasv_enable#g" \
       -e "s#|MAX_PER_IP|#$max_per_ip#g" \
+      -e "s#|GUEST_ENABLE|#$guest_enable#g" \
+      -e "s#|GUEST_USERNAME|#$guest_username#g" \
       /etc/vsftpd.conf.template > /var/etc/vsftpd.conf
 
   ########## Since Ver 4.0 ##########
@@ -245,12 +311,17 @@ start() {
     echo "anon_max_rate=$anon_max_rate" >> /var/etc/vsftpd.conf
   fi
 
+
       [ -f /etc/vsftpd.conf ] && [ ! -L /etc/vsftpd.conf ] && mv -f /etc/vsftpd.conf /etc/vsftpd.conf.bak
       ln -nsf /var/etc/vsftpd.conf /etc/vsftpd.conf
       
-      rm -rf /var/etc/vsftpd/users.txt
-      mkdir -p /var/etc/vsftpd
+      rm -rf /var/etc/vsftpd
+      mkdir -p /var/etc/vsftpd/vconfig
       config_list_foreach main userlist mkuserlist
+
+      touch /var/etc/vsftpd/virtual
+      config_foreach mkvconfig guests
+      db_load -T -t hash -f /var/etc/vsftpd/virtual /var/etc/vsftpd/virtual.db
       
 	mkdir -m 0755 -p /var/run/vsftpd
 	service_start /usr/sbin/vsftpd

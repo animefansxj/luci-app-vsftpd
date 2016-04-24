@@ -21,6 +21,7 @@ define Package/vsftpd
   SUBMENU:=File Transfer
   SECTION:=net
   CATEGORY:=Network
+  DEPENDS:=+libpam +db47
   TITLE:=A fast and secure FTP server
   URL:=http://vsftpd.beasts.org/
   MAINTAINER:=Cezary Jackiewicz <cezary@eko.one.pl>
@@ -45,6 +46,8 @@ define Package/vsftpd/install
 	$(INSTALL_CONF) files/$(PKG_NAME).conf $(1)/etc/config/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) files/$(PKG_NAME).init $(1)/etc/init.d/$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/etc/pam.d
+	$(INSTALL_CONF) files/$(PKG_NAME).pam $(1)/etc/pam.d/$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,vsftpd))
