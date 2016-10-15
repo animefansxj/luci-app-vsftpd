@@ -1,5 +1,5 @@
 --- feeds/packages/libs/db47/Makefile	2016-01-01 16:40:43.000000000 +0800
-+++ "/home/xujun/\346\241\214\351\235\242/xujun/Router/mw300r/chaos_calmer.1/feeds/packages/libs/db47/Makefile"	2016-04-23 15:34:52.830924661 +0800
++++ feeds/packages/libs/db47/Makefile	2016-04-23 15:34:52.830924661 +0800
 @@ -29,6 +29,20 @@
  
  include $(INCLUDE_DIR)/package.mk
@@ -41,7 +41,7 @@
  $(eval $(call BuildPackage,libdb47))
  $(eval $(call BuildPackage,libdb47xx))
 --- feeds/packages/libs/libpam/Makefile	2016-04-23 20:49:39.426702744 +0800
-+++ "/home/xujun/\346\241\214\351\235\242/xujun/Router/mw300r/chaos_calmer.1/feeds/packages/libs/libpam/Makefile"	2016-04-23 20:52:12.490704191 +0800
++++ feeds/packages/libs/libpam/Makefile	2016-04-23 20:52:12.490704191 +0800
 @@ -25,6 +25,7 @@
  define Package/libpam
    SECTION:=libs
